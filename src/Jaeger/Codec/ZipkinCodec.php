@@ -29,10 +29,10 @@ class ZipkinCodec implements CodecInterface
      */
     public function inject(SpanContext $spanContext, &$carrier)
     {
-        $carrier[self::TRACE_ID_NAME] = base_convert($spanContext->getTraceId(), 10, 16);
-        $carrier[self::SPAN_ID_NAME] = base_convert($spanContext->getSpanId(), 10, 16);
+        $carrier[self::TRACE_ID_NAME] = $spanContext->getTraceId();
+        $carrier[self::SPAN_ID_NAME] = $spanContext->getSpanId();
         if ($spanContext->getParentId() != null) {
-            $carrier[self::PARENT_ID_NAME] = base_convert($spanContext->getParentId(), 10, 16);
+            $carrier[self::PARENT_ID_NAME] = $spanContext->getParentId();
         }
         $carrier[self::FLAGS_NAME] = (int) $spanContext->getFlags();
     }
@@ -47,9 +47,6 @@ class ZipkinCodec implements CodecInterface
      */
     public function extract($carrier)
     {
-        $traceId = "0";
-        $spanId = "0";
-        $parentId = "0";
         $flags = 0;
 
         if (isset($carrier[strtolower(self::SAMPLED_NAME)])) {
@@ -60,17 +57,9 @@ class ZipkinCodec implements CodecInterface
             }
         }
 
-        if (isset($carrier[strtolower(self::TRACE_ID_NAME)])) {
-            $traceId = base_convert($carrier[strtolower(self::TRACE_ID_NAME)], 16, 10);
-        }
-
-        if (isset($carrier[strtolower(self::PARENT_ID_NAME)])) {
-            $parentId = base_convert($carrier[strtolower(self::PARENT_ID_NAME)], 16, 10);
-        }
-
-        if (isset($carrier[strtolower(self::SPAN_ID_NAME)])) {
-            $spanId = base_convert($carrier[strtolower(self::SPAN_ID_NAME)], 16, 10);
-        }
+        $traceId = self::extractHex(self::TRACE_ID_NAME, $carrier, 32) ?? "0";
+        $spanId = self::extractHex(self::SPAN_ID_NAME, $carrier, 16) ?? "0";
+        $parentId = self::extractHex(self::PARENT_ID_NAME, $carrier, 16) ?? "0";
 
         if (isset($carrier[strtolower(self::FLAGS_NAME)])) {
             if ($carrier[strtolower(self::FLAGS_NAME)] === "1") {
@@ -80,6 +69,16 @@ class ZipkinCodec implements CodecInterface
 
         if ($traceId !== "0" && $spanId !== "0") {
             return new SpanContext($traceId, $spanId, $parentId, $flags);
+        }
+
+        return null;
+    }
+
+    private static function extractHex($key, $carrier, $maxlen)
+    {
+        $val = $carrier[strtolower($key)] ?? null;
+        if (strlen($val) <= $maxlen && preg_match('/^[0-9a-fA-F]+$/', $val)) {
+            return $val;
         }
 
         return null;

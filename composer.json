@@ -48,7 +48,8 @@
             "Jaeger\\Tests\\": "tests/Jaeger/"
         },
         "files": [
-            "./src/Jaeger/Constants.php"
+            "./src/Jaeger/Constants.php",
+            "./src/Jaeger/HexToInt64.php"
         ]
     },
     "minimum-stability": "dev",

@@ -21,9 +21,9 @@ class ZipkinCodecTest extends TestCase
     function testInject()
     {
         // Given
-        $traceId = 123;
-        $spanId = 456;
-        $parentId = 789;
+        $traceId = '7b';
+        $spanId = '1c8';
+        $parentId = '315';
 
         $spanContext = new SpanContext(
             $traceId,
@@ -48,8 +48,8 @@ class ZipkinCodecTest extends TestCase
         // Given
         $carrier = [
             'x-b3-traceid' => '463ac35c9f6413ad48485a3953bb6124',
-            'x-b3-spanid' => '463ac35c9f6413ad48485a3953bb6124',
-            'x-b3-parentspanid' => '463ac35c9f6413ad48485a3953bb6124',
+            'x-b3-spanid' => '463ac35c9f6413ad',
+            'x-b3-parentspanid' => '463ac35c9f6413ad',
             'x-b3-flags' => '1',
         ];
 
@@ -58,9 +58,9 @@ class ZipkinCodecTest extends TestCase
 
         // Then
         $this->assertEquals(new SpanContext(
-            '93351075330931896558786731617803788580',
-            '93351075330931896558786731617803788580',
-            '93351075330931896558786731617803788580',
+            '463ac35c9f6413ad48485a3953bb6124',
+            '463ac35c9f6413ad',
+            '463ac35c9f6413ad',
             DEBUG_FLAG
         ), $spanContext);
     }
@@ -70,7 +70,7 @@ class ZipkinCodecTest extends TestCase
         // Given
         $carrier = [
             'x-b3-traceid' => '463ac35c9f6413ad48485a3953bb6124',
-            'x-b3-spanid' => '463ac35c9f6413ad48485a3953bb6124',
+            'x-b3-spanid' => '463ac35c9f6413ad',
             'x-b3-flags' => '1',
         ];
 
@@ -79,8 +79,8 @@ class ZipkinCodecTest extends TestCase
 
         // Then
         $this->assertEquals(new SpanContext(
-            '93351075330931896558786731617803788580',
-            '93351075330931896558786731617803788580',
+            '463ac35c9f6413ad48485a3953bb6124',
+            '463ac35c9f6413ad',
             '0',
             DEBUG_FLAG
         ), $spanContext);
@@ -91,6 +91,22 @@ class ZipkinCodecTest extends TestCase
         // Given
         $carrier = [
             'x-b3-traceid' => 'zzzz',
+            'x-b3-spanid' => '463ac35c9f6413ad',
+            'x-b3-flags' => '1',
+        ];
+
+        // When
+        $spanContext = $this->codec->extract($carrier);
+
+        // Then
+        $this->assertEquals(null, $spanContext);
+    }
+
+    function testExtractTooLargeSpan()
+    {
+        // Given
+        $carrier = [
+            'x-b3-traceid' => '463ac35c9f6413ad',
             'x-b3-spanid' => '463ac35c9f6413ad48485a3953bb6124',
             'x-b3-flags' => '1',
         ];

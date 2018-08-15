@@ -346,7 +346,7 @@ class Tracer implements OTTracer
      */
     private function randomId(): string
     {
-        return (string) random_int(0, PHP_INT_MAX);
+        return dechex(random_int(PHP_INT_MIN, PHP_INT_MAX));
     }
 
     /**

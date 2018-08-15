@@ -7,6 +7,8 @@ use const Jaeger\SAMPLER_PARAM_TAG_KEY;
 use const Jaeger\SAMPLER_TYPE_PROBABILISTIC;
 use const Jaeger\SAMPLER_TYPE_TAG_KEY;
 
+use function Jaeger\hexToInt64;
+
 /**
  * A sampler that randomly samples a certain percentage of traces specified
  * by the samplingRate, in the range between 0.0 and 1.0.
@@ -71,7 +73,8 @@ class ProbabilisticSampler implements SamplerInterface
      */
     public function isSampled(string $traceId, string $operation = ''): array
     {
-        return [($traceId < $this->boundary), $this->tags];
+        $int64 = hexToInt64(substr($traceId, -16));
+        return [abs($int64) < $this->boundary, $this->tags];
     }
 
     /**

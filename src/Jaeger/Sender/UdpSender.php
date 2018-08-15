@@ -18,6 +18,44 @@ use Jaeger\Span as JaegerSpan;
 
 use const OpenTracing\Tags\COMPONENT;
 
+use function Phlib\base_convert;
+
+/**
+ * Incoming trace/span IDs are hex representations of 64-bit numbers. PHP
+ * represents ints internally as signed 32- or 64-bit values, but base_convert
+ * converts to string representations of arbitrarily large positive numbers.
+ * This means at least half the incoming IDs will be larger than PHP_INT_MAX.
+ *
+ * Thrift, while building a binary representation of the IDs, performs bitwise
+ * operations on the string values, implicitly casting to int and capping them
+ * at PHP_INT_MAX. So, incoming IDs larger than PHP_INT_MAX will be serialized
+ * and sent to the agent as PHP_INT_MAX, breaking trace/span correlation.
+ *
+ * This method therefore, on 64-bit architectures, converts the string decimal
+ * value to hex, splits the hex into high and low values, converts them
+ * separately to ints, and manually combines them into a proper, signed int.
+ * This int is then handled properly by the Thrift package.
+ *
+ * @param int|string $dec
+ * @return int|string
+ */
+function toInt64($dec) {
+    // If we're on a 32-bit architecture, just return the value.
+    if (PHP_INT_SIZE === 4) {
+        return $dec;
+    }
+
+    // First convert the decimal value to hex.
+    $hex = base_convert($dec, 10, 16);
+
+    // Convert the upper and lower 8 characters to integers.
+    $hi = intval(substr($hex, -16, -8), 16);
+    $lo = intval(substr($hex,  -8,  8), 16);
+
+    // Finally combine the high and low ints into a single value.
+    return $hi << 32 | $lo;
+}
+
 class UdpSender
 {
     const CLIENT_ADDR = "ca";
@@ -140,11 +178,12 @@ class UdpSender
 
             $this->addZipkinAnnotations($span, $endpoint);
 
+            $parentId = $span->getContext()->getParentId();
             $zipkinSpan = new ThriftSpan([
                 'name' => $span->getOperationName(),
-                'id' => $span->getContext()->getSpanId(),
-                'parent_id' => $span->getContext()->getParentId() ?? null,
-                'trace_id' => $span->getContext()->getTraceId(),
+                'id' => toInt64($span->getContext()->getSpanId()),
+                'parent_id' => $parentId === null ? null : toInt64($parentId),
+                'trace_id' => toInt64($span->getContext()->getTraceId()),
                 'annotations' => $this->createAnnotations($span, $endpoint),
                 'binary_annotations' => $span->getTags(),
                 'debug' => $span->isDebug(),

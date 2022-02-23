@@ -39,7 +39,6 @@ class SpanContext implements OTSpanContext
         $this->parentId = $parentId;
         $this->flags = $flags;
         $this->baggage = is_array($baggage) ? $baggage : [];
-	$this->baggage = $baggage;
         $this->debugId = $debugId;
     }
 

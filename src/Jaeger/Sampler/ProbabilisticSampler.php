@@ -40,7 +40,7 @@ class ProbabilisticSampler implements SamplerInterface
             SAMPLER_PARAM_TAG_KEY => $rate,
         ];
 
-        if ($rate <= 0.0 || $rate >= 1.0) {
+        if ($rate < 0.0 || $rate > 1.0) {
             throw new Exception('Sampling rate must be between 0.0 and 1.0');
         }
 
